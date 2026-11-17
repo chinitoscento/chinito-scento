@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    @apply bg-bg text-ink font-sans antialiased;
+    /* soft gold sheen that echoes the logo */
+    background-image: linear-gradient(135deg, #fdf8ea 0%, #f6e6b0 28%, #fcf6e4 52%, #eed9a0 78%, #fbf3dc 100%);
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+  }
+  @media (min-width: 768px) and (hover: hover) { body { background-attachment: fixed; } }
+  h1, h2, h3 { @apply font-serif; }
+  :focus-visible { @apply outline outline-2 outline-offset-2 outline-gold2; }
+}
+
+@layer components {
+  .cs-card { @apply bg-panel border border-line rounded-2xl; }
+  .cs-label { @apply block text-sm text-muted mb-1.5; }
+  .cs-input { @apply w-full bg-white border border-line rounded-lg px-3 py-2.5 text-ink placeholder:text-muted/60 focus:border-gold2; }
+  .cs-btn { @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed; }
+  .cs-btn-gold { @apply cs-btn bg-gold text-ink hover:bg-[#e3bf5a]; }
+  .cs-btn-ghost { @apply cs-btn border border-line bg-white text-ink hover:border-gold2 hover:text-gold2; }
+}
