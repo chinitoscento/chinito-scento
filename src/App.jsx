@@ -61,6 +61,7 @@ export default function App() {
   const [done, setDone] = useState(null)
   const [tab, setTab] = useState('All')
   const [family, setFamily] = useState('All')
+  const [capId, setCapId] = useState(null) // size the customer tried to order beyond stock
 
   useEffect(() => {
     if (!supabaseReady) { setLoadErr('The shop is not connected yet. Please check back soon.'); return }
@@ -103,13 +104,16 @@ export default function App() {
   const total = lines.reduce((s, l) => s + Number(l.price) * l.qty, 0)
   const pieces = lines.reduce((s, l) => s + l.qty, 0)
 
-  const setQty = (id, qty) =>
+  const setQty = (id, qty) => {
+    const cap = Math.min(MAX_QTY, Number(bySize[id]?.max_qty ?? MAX_QTY)) // never more than we have
+    setCapId(qty > cap ? id : null)
     setCart((c) => {
       const n = { ...c }
       if (qty <= 0) delete n[id]
-      else n[id] = Math.min(qty, MAX_QTY)
+      else n[id] = Math.min(qty, cap)
       return n
     })
+  }
   const field = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   async function submit(e) {
@@ -226,10 +230,11 @@ export default function App() {
                   {g.items.map((p) => {
                     const out = p.sizes.every((s) => !s.in_stock)
                     return (
-                      <article key={p.name} className="cs-card overflow-hidden flex flex-col">
-                        <div className="aspect-[4/5] relative overflow-hidden bg-panel2 grid place-items-center">
+                      <article key={p.name} className={`cs-card overflow-hidden flex flex-col ${out ? 'opacity-70' : ''}`}>
+                        <div className={`aspect-[4/5] relative overflow-hidden bg-panel2 grid place-items-center ${out ? 'grayscale' : ''}`}>
                           <ProductImage p={p} />
                           {out && <span className="absolute top-2 left-2 rounded-full bg-ink text-bg text-xs px-2.5 py-0.5">Sold out</span>}
+                          {!out && p.sizes.some((s) => s.in_stock && s.few_left) && <span className="absolute top-2 left-2 rounded-full bg-gold text-ink text-xs font-medium px-2.5 py-0.5">Few left</span>}
                         </div>
                         <div className="p-3 flex flex-col flex-1">
                           <h4 className="font-serif text-xl leading-tight">{p.name}</h4>
@@ -261,7 +266,14 @@ export default function App() {
                                       {cart[s.size_id] ? cart[s.size_id] : <Plus size={12} />}
                                     </span>
                                   </button>
-                                ) : <span className="block text-center text-sm text-warn py-1.5">{Number(s.size_ml)} ml sold out</span>}
+                                ) : (
+                                  <button disabled aria-label={`${p.name} ${Number(s.size_ml)} ml is sold out`}
+                                    className="w-full flex items-center justify-between gap-2 rounded-full border border-line bg-panel2 px-3 py-1.5 text-sm text-muted cursor-not-allowed">
+                                    <span className="font-mono">{Number(s.size_ml)} ml <span>Sold out</span></span>
+                                    <span className="inline-flex items-center justify-center rounded-full bg-line text-muted min-w-5 h-5 px-1 text-xs"><Plus size={12} /></span>
+                                  </button>
+                                )}
+                                {capId === s.size_id && <p className="text-xs text-warn mt-1 text-center">Only {Number(s.max_qty)} available right now.</p>}
                               </li>
                             ))}
                           </ul>
@@ -339,7 +351,7 @@ export default function App() {
                         <button type="button" className="cs-btn-ghost !p-1.5" onClick={() => setQty(l.size_id, l.qty - 1)} aria-label={`Fewer ${l.perfume_name} ${Number(l.size_ml)} ml`}>
                           {l.qty === 1 ? <Trash2 size={14} /> : <Minus size={14} />}</button>
                         <span className="font-mono w-6 text-center" aria-live="polite">{l.qty}</span>
-                        <button type="button" className="cs-btn-ghost !p-1.5" onClick={() => setQty(l.size_id, l.qty + 1)} disabled={l.qty >= MAX_QTY} aria-label={`More ${l.perfume_name} ${Number(l.size_ml)} ml`}>
+                        <button type="button" className="cs-btn-ghost !p-1.5" onClick={() => setQty(l.size_id, l.qty + 1)} disabled={l.qty >= Math.min(MAX_QTY, Number(l.max_qty ?? MAX_QTY))} aria-label={`More ${l.perfume_name} ${Number(l.size_ml)} ml`}>
                           <Plus size={14} /></button>
                       </div>
                     </li>
